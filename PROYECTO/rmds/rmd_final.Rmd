@@ -1,0 +1,656 @@
+---
+title: "ATP TOUR TENNIS DATA"
+author: "Alvaro Gilabert y Javier Navarro"
+date: "`r Sys.Date()`"
+output:
+  ioslides_presentation: default
+  beamer_presentation: default
+subtitle: Programación y manejo de datos
+---
+
+<style>
+h2 { 
+ color: black;		
+}
+h3 { 
+ color: black;		
+}
+</style>
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      cache = FALSE, cache.path = "/caches/", comment = "#>",
+                      #fig.width = 7, fig.height= 7,   
+                      #out.width = 7, out.height = 7,
+                      collapse = TRUE,  fig.show = "hold",
+                      fig.asp = 7/9, out.width = "75%", fig.align = "center")
+
+library(rio)
+library(tidyverse)
+library(ggplot2)
+library(gganimate)
+
+```
+
+
+# ¿POR QUÉ ESTOS DATOS? 
+
+___
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/2BgMrm3yz58" frameborder="0" allowfullscreen></iframe>
+
+
+<CENTER>[link](https://www.youtube.com/embed/2BgMrm3yz58)</CENTER>
+
+___
+
+<CENTER>**Comentario ATP Tour oficial:**</CENTER>
+
+<br><br>
+
+```{r}
+
+knitr::include_graphics(here::here("./imagenes/respuesta_yt.png"))
+
+
+```
+
+<br><br>
+
+> This is awesome! We would love to speak to you about creating content for the ATP´s channels, drop us an email at socialmedia@.
+
+
+# ¿QUÉ VAMOS A HACER? 
+
+## OBJETIVO DEL PROYECTO
+
+```{r}
+
+knitr::include_graphics(here::here("./imagenes/esquema_general.png"))
+
+```
+
+
+1. Importar
+2. Ordenar / Transformar
+3. Visualizar
+4. Comunicar
+
+
+## IMPORTAR
+
+```{r}
+
+knitr::include_graphics(here::here("./imagenes/esquema_1.png"))
+
+```
+
+<br><br>
+
+<CENTER>DATOS: [Repositorio datahub](https://datahub.io/sports-data/atp-world-tour-tennis-data)</CENTER>
+
+##
+
+```{r, echo=TRUE, eval=FALSE}
+
+file_to_download <- "rankings_1973-2017.csv"
+url <- paste0("https://datahub.io/
+sports-data/atp-world-tour-tennis-data/r/7.html",
+    file_to_download)
+download.file(url, destfile = file_to_download)
+
+```
+
+
+```{r, echo=TRUE, eval=FALSE}
+
+file_to_download <- "player_overviews_unindexed_csv.csv"
+url <- paste0("https://datahub.io/sports-data/
+atp-world-tour-tennis-data/r/8.html",
+    file_to_download)
+download.file(url, destfile = file_to_download)
+
+```
+
+
+```{r, echo=TRUE}
+
+atp_database_1 <- import(here::here("./rankings_1973-2017.csv"))
+
+atp_database_2 <- import(here::here("./player_overviews_unindexed_csv.csv"))
+
+```
+
+## ORDENAR / TRANSFORMAR
+
+<br><br><br>
+
+```{r}
+
+knitr::include_graphics(here::here("./imagenes/esquema_2.png"))
+
+```
+
+
+
+## ESTRUCTURA DE LOS DATOS
+
+```{r, echo=TRUE}
+
+df <- full_join(atp_database_1,atp_database_2, by = "player_id")
+
+```
+
+~~~
+'data.frame':	2694539 obs. of  14 variables:
+ $ week_title     : chr  "2017.11.20" "2017.11.20" "2017.11.20" "2017.11.20" ...
+ $ week_year      : int  2017 2017 2017 2017 2017 2017 2017 2017 2017 2017 ...
+ $ week_month     : int  11 11 11 11 11 11 11 11 11 11 ...
+ $ week_day       : int  20 20 20 20 20 20 20 20 20 20 ...
+ $ rank_text      : chr  "1" "2" "3" "4" ...
+ $ rank_number    : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ move_positions : int  NA NA 3 1 1 1 1 1 2 NA ...
+ $ move_direction : chr  "" "" "up" "down" ...
+ $ player_age     : int  31 36 26 20 24 29 26 25 32 26 ...
+ $ ranking_points : int  10645 9605 5150 4610 4015 3805 3775 3165 3150 2615 ...
+ $ tourneys_played: int  18 17 23 25 27 22 26 22 15 25 ...
+ $ player_url     : chr  "/en/players/rafael-nadal/n409/overview"
+"/en/players/roger-federer/f324/overview" "/en/players/grigor-dimitrov/d875/overview" ...
+ $ player_slug    : chr  "rafael-nadal" "roger-federer" ...
+ $ player_id      : chr  "n409" "f324" "d875" "z355" ...
+~~~
+
+
+## LIMPIEZA DE DATOS
+
+```{r, echo=TRUE}
+
+        df1 <- df %>% select(-c(move_positions, move_direction,
+            player_url.x, player_url.y, player_id, player_slug.y,
+            residence, birthdate, birth_year, birth_month,
+            birth_day, turned_pro, weight_lbs, height_ft, height_inches)) %>%
+    
+            rename(player = player_slug.x, date = week_title,
+            month = week_month, year = week_year, country = flag_code)
+
+        df1 <- df1 %>%
+            mutate(date = gsub(".", "-", date, fixed = TRUE)) %>%
+            mutate(player = gsub("-", "_", player, fixed = TRUE)) %>%
+            mutate(player = gsub("%20", "_", player, fixed = TRUE)) %>%
+            mutate(player = gsub("juan_martin_del_potro",
+            "del_potro", player, fixed = TRUE))
+
+        df2 <- janitor::clean_names(df1, case = "snake")
+
+```
+
+## PRESENTACIÓN DE VARIABLES
+
+<br><br><br>
+
+```{r, echo=TRUE}
+
+names(df2)
+
+```
+
+## VISUALIZAR
+
+<br><br><br>
+
+```{r}
+
+knitr::include_graphics(here::here("./imagenes/esquema_3.png"))
+
+```
+
+    
+## EJEMPLOS
+
+<br><br>
+
+- BUMP CHART
+<br><br>
+- TABLAS
+<br><br>
+- MAPAS
+<br><br>
+- BAR CHART RACE
+
+# BUMP CHART
+ 
+## CONSTRUYENDO EL GRÁFICO
+
+### A DESTACAR:
+
+```{r, echo=TRUE}
+
+df3 <- df2 %>% select(date, year, month, country, player,
+        rank_number, ranking_points) %>%
+        group_by(date) %>%
+        filter((year ==  2010) & (rank_number < 16)) %>%
+        group_by(player, date) %>%
+        arrange(date) %>%
+        mutate(day = as.numeric(as.Date(date) - 14612)) %>%
+        as.data.frame() %>%
+        ungroup()
+
+```
+
+`r icon::fa("search-plus")` `r icon::fa("search-plus")`  [(Help)](https://ropensci.org/technotes/2018/05/15/icon/)
+
+```{r, echo=TRUE, eval=FALSE}
+
+mutate(day = as.numeric(as.Date(date) - 14612)) %>%
+as.data.frame()
+
+```
+
+
+___
+
+
+```{r, fig.height=30, fig.width=6}
+
+my_theme <- function() {
+
+  color.background = "white"
+  color.text = "#22211d"
+
+  theme_bw(base_size=15) +
+
+    theme(panel.background = element_rect(fill=color.background, color=color.background)) +
+    theme(plot.background  = element_rect(fill=color.background, color=color.background)) +
+    theme(panel.border     = element_rect(color=color.background)) +
+    theme(strip.background = element_rect(fill=color.background, color=color.background)) +
+
+    theme(panel.grid.major.y = element_blank()) +
+    theme(panel.grid.minor.y = element_blank()) +
+    theme(axis.ticks       = element_blank()) +
+
+    theme(legend.position = "none") +
+
+    theme(plot.title       = element_text(color=color.text, size=20, face = "bold")) +
+    theme(axis.title.x     = element_text(size=14, color="black", face = "bold")) +
+    theme(axis.title.y     = element_text(size=14, color="black", face = "bold", vjust=1.25)) +
+    theme(axis.text.x      = element_text(size=10, vjust=0.5, hjust=0.5, color = color.text)) +
+    theme(axis.text.y      = element_text(size=10, color = color.text)) +
+    theme(strip.text       = element_text(face = "bold")) +
+
+    theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
+}
+
+
+```
+
+
+```{r, echo=TRUE}
+
+df4 <- df3 %>% mutate(flag = ifelse(player %in% c("roger_federer",
+    "rafael_nadal","novak_djokovic",
+    "andy_murray","del_potro"), TRUE, FALSE),
+     player_col = if_else(flag == TRUE, player, "zzz"))
+
+```
+
+```{r}
+
+show.top.n <- 10
+
+ggplot(data = df4, aes(x = day, y = rank_number, group = player)) +
+    geom_line(aes(color = player_col, alpha = 0.5), size = 2) +
+    geom_point(color = "#FFFFFF", size = 4) +
+    geom_point(aes(color = player_col, alpha = 0.5), size = 4) +
+    geom_point(color = "#FFFFFF", size = 1) +
+    scale_y_reverse(breaks = 1:show.top.n) +
+    scale_x_continuous(breaks = waiver(), minor_breaks = waiver(), expand = c(.05, .05)) +
+    geom_text(data = df4 %>% filter(day == "1"),
+             aes(label = player, x = -130) , hjust = 0.1, fontface = "bold", color = "black", size = 4) +
+    geom_text(data = df4 %>% filter(day == "211"),
+            aes(label = player, x = 500) , hjust = 1, fontface = "bold", color = "black", size = 4) +
+    coord_cartesian(ylim = c(1,show.top.n)) +
+    theme(legend.position = "none") +
+    labs(x = "RANKING ATP 2010 MASCULINO POR DÍA",
+       y = "POSICIÓN",
+       title = "ATP MASTER SERIES 1000",
+       subtitle = "TENISTAS SEGÚN SU POSICIÓN EN EL RANKING") +
+    my_theme() +
+    scale_color_manual(values = c("#F70020","#191A1A","#FB9701","#1A7D00","#072C8F","grey")) + theme(plot.subtitle = element_text(hjust = 0.5),
+    plot.caption = element_text(hjust = 0.5),
+    axis.line = element_line(size = 0.5),
+    plot.title = element_text(hjust = 0.5,
+        vjust = 0.5)) +labs(caption = "Datos obtenidos de ATP World Tour")
+
+```
+
+
+___
+
+
+```{r, fig.height=30, fig.width=6}
+
+p <- ggplot(data = df4, aes(x = day, y = rank_number, group = player)) +
+  
+  geom_line(aes(color = player_col, alpha = 0.5), size = 2) +
+  geom_point(color = "#FFFFFF", size = 4) +
+  geom_point(aes(color = player_col, alpha = 0.5), size = 4) +
+  geom_point(color = "#FFFFFF", size = 1) +
+  scale_y_reverse(breaks = 1:show.top.n) +
+  scale_x_continuous(breaks = waiver(), minor_breaks = waiver(), expand = c(.05, .05)) +
+  geom_text(data = df4 %>% filter(day == "1"),
+        aes(label = player, x = -100) , hjust = 0.2, fontface = "bold", color = "black", size = 4) +
+  geom_text(data = df4 %>% filter(day == "358"),
+            aes(label = player, x = 450) , hjust = 0.15, fontface = "bold", color = "black", size = 4) +
+  coord_cartesian(ylim = c(1,show.top.n)) +
+  theme(legend.position = "none") +
+  labs(x = "RANKING ATP 2010 MASCULINO POR DÍA",
+       y = "POSICIÓN",
+       title = "ATP MASTER SERIES 1000",
+       subtitle = "TENISTAS SEGÚN SU POSICIÓN EN EL RANKING") +
+  my_theme() +
+  scale_color_manual(values = c("#F70020","#191A1A","#FB9701","#1A7D00","#072C8F","grey")) +
+  theme(plot.subtitle = element_text(hjust = 0.5),
+    plot.caption = element_text(hjust = 0.5),
+    axis.line = element_line(size = 0.5),
+    plot.title = element_text(hjust = 0.5,
+    vjust = 0.5)) +labs(caption = "Datos obtenidos de ATP World Tour")
+
+plotly::ggplotly(p)
+
+```
+
+# TABLAS
+
+___
+
+### PORCENTAJE DIESTROS/ZURDOS TOP 100 AÑO 2017:
+
+```{r}
+
+df3 <- df2 %>% filter((date == "2017-11-20") & (rank_number < 101)) %>% select(rank_number, player, player_age, handedness, backhand) 
+
+df4 <- df3 %>% group_by(handedness) %>% summarise(NN = n()) %>% mutate(percent = NN / sum(NN))
+
+knitr::kable(df4)
+
+```
+
+<br>
+
+### PORCENTAJE TIPO REVÉS TOP 100 AÑO 2017:
+
+```{r}
+
+df5 <- df3 %>% group_by(backhand) %>% summarise(NN = n()) %>% mutate(percent = NN / sum(NN))
+
+knitr::kable(df5)
+
+```
+
+___
+
+###  ALTURA Y PESO MEDIO TOP 100 AÑOS 2013 - 2017:
+
+<br>
+
+```{r}
+
+df1 <- df %>% select(-c(move_positions, move_direction,
+      player_url.x, player_url.y, player_id, player_slug.y,
+      residence, birthdate, birth_month,
+      birth_day, weight_lbs, height_ft, height_inches)) %>%
+    
+      rename(player = player_slug.x, date = week_title,
+      month = week_month, year = week_year, country = flag_code)
+
+df1 <- df1 %>%
+      mutate(date = gsub(".", "-", date, fixed = TRUE)) %>%
+      mutate(player = gsub("-", "_", player, fixed = TRUE)) %>%
+      mutate(player = gsub("%20", "_", player, fixed = TRUE)) %>%
+      mutate(player = gsub("juan_martin_del_potro",
+      "del_potro", player, fixed = TRUE))
+
+df2 <- janitor::clean_names(df1, case = "snake")
+        
+        
+df3 <- df2 %>% filter((date == "2016-12-26" | date == "2017-11-20" | date == "2015-12-28" | date == "2014-12-29" | date == "2013-12-30") & rank_number < 101)
+
+df4 <- df3 %>%
+  group_by(date) %>%
+  summarise(altura_media = mean(height_cm , na.rm = TRUE), 
+      peso_medio  = mean(weight_kg, na.rm = TRUE) ) %>% ungroup() 
+
+knitr::kable(df4)
+
+```
+
+___
+
+### EDAD AL CONVERTIRSE EN PROFESIONAL:
+
+<br>
+
+```{r}
+
+df3 <- df2 %>%
+  filter((date == "2017-11-20") & (rank_number < 6)) %>%  
+  mutate(years_turned_pro = (turned_pro - birth_year)) %>%
+  arrange(rank_number) %>%
+  select(player, birth_year, turned_pro, years_turned_pro)
+
+knitr::kable(df3)
+
+```
+
+___
+
+<br><br>
+
+```{r}
+
+df3 <- df2 %>%
+  filter((date == "2017-11-20") & (rank_number > 5) & (rank_number < 11)) %>%  
+  mutate(years_turned_pro = (turned_pro - birth_year)) %>%
+  arrange(rank_number) %>%
+  select(player, birth_year, turned_pro, years_turned_pro)
+
+knitr::kable(df3)
+
+```
+
+___
+
+```{r}
+
+df3 = df2[ , c(1,2,3,4,10,13,8,6,5,9,11,12,7,14,15,16,17,18)]
+
+df4 <- df3 %>% select(-c(rank_text)) %>% filter(rank_number < 11) %>% arrange(desc(date))
+
+rpivotTable::rpivotTable(df4, rows = "player", width = "100%", height = "500px")
+
+```
+
+
+# MAPAS
+
+
+## CONSTRUYENDO EL MAPA
+
+```{r, echo=TRUE}
+
+df3 <- df3 %>%
+    mutate(country = gsub("SUI", "CHE", country, fixed = TRUE)) %>%
+    mutate(country = gsub("BUL", "BGR", country, fixed = TRUE)) %>%
+    mutate(country = gsub("GER", "DEU", country, fixed = TRUE)) %>%
+    mutate(country = gsub("CRO", "HRV", country, fixed = TRUE)) %>%
+    mutate(country = gsub("RSA", "RUS", country, fixed = TRUE))
+
+
+df4 <- df3 %>%
+    filter(year > 2013) %>%
+    arrange(date) %>%
+    group_by(player, year) %>%
+    slice(n()) %>%
+    ungroup()
+
+```
+
+___
+
+```{r}
+
+df5 <- df4 %>%
+    arrange(desc(ranking_points))
+
+df6 <- df5 %>%
+    group_by(year,country) %>%
+    summarise(sum(ranking_points)) 
+
+df7 <- df6 %>%
+    mutate(puntos_pais = `sum(ranking_points)`) %>% 
+    arrange(desc(puntos_pais)) 
+
+
+library("rnaturalearth")
+library("rnaturalearthdata")
+world <- ne_countries(scale = "medium", returnclass = "sf")
+world <- world %>% filter(subregion != "Antarctica") %>% filter(admin != "Greenland")
+p <- ggplot() + geom_sf(data = world) + theme_void()
+world <- world %>% select(name, iso_a3, geometry)
+
+df_world <- left_join(df7, world, by = c("country" = "iso_a3"))
+
+df8 <- df_world %>% select(country, puntos_pais, geometry)
+
+p <- ggplot() +
+    geom_sf(data = world) +
+    geom_sf(data = df8, aes(geometry = geometry, fill = puntos_pais)) +
+    theme_void()
+
+p + scale_fill_viridis_c(option = "plasma", trans = "sqrt") +
+    labs(title = "TOTAL PUNTOS TOP 1000 ATP 2017",
+       subtitle = "(diferenciado por país)",
+       caption = "Datos obtenidos de ATP World Tour") +
+     theme(plot.subtitle = element_text(hjust = 0.5), 
+    plot.title = element_text(hjust = 0.5)) +
+    theme(panel.background = element_rect(fill = "deepskyblue2"))
+
+```
+
+___
+
+
+```{r}
+
+p <- ggplot() +
+    geom_sf(data = world) +
+    geom_sf(data = df8, aes(geometry = geometry, fill = puntos_pais)) +
+    theme_void()
+
+p + scale_fill_viridis_c(option = "plasma", trans = "sqrt") +
+    labs(title = "TOTAL PUNTOS TOP 1000 ATP",
+       subtitle = "(diferenciado por país)",
+       caption = "Datos obtenidos de ATP World Tour") +
+     theme(plot.subtitle = element_text(hjust = 0.5), 
+    plot.title = element_text(hjust = 0.5)) +
+    facet_wrap(vars(year), nrow = 2, ncol = 2) +
+    theme(panel.background = element_rect(fill = "deepskyblue2"))
+
+
+```
+
+
+# BAR CHART RACE 
+
+
+## {.build .bigger}
+
+<br><br><br>
+
+<CENTER>¿LO HEMOS CONSEGUIDO?</CENTER>
+
+<br><br><br>
+
+<CENTER>A MEDIAS</CENTER>
+
+___
+
+```{r}
+
+df3 <- df2 %>%
+  select(player, date, ranking_points, rank_number, year) %>%
+  filter((rank_number < 11) & (year > 2015)) %>% group_by(player, date) %>% ungroup()
+
+img <- jpeg::readJPEG(here::here("./imagenes/fondo.JPG"))
+
+p <- ggplot(df3, aes(rank_number, group = player,
+                     fill = as.factor(player), color = as.factor(player))) +
+
+  ggpubr::background_image(img) +
+
+  theme(plot.background = element_rect(fill = "gray7")) +
+
+  geom_tile(aes(y = ranking_points/2,
+                height = ranking_points,
+                width = 0.9), alpha = 1, color = NA) +
+    geom_text(aes(y = 0, label = player),
+            vjust = 0.4, hjust = 0.0, size = 7, colour = "black")  +
+   geom_text(aes(y = 0, label = paste(rank_number, " ")), vjust = 0.2, hjust = 1, colour = "white") +
+
+  coord_flip(clip = "off", expand = FALSE) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_reverse() +
+  guides(color = FALSE, fill = FALSE) +
+
+  labs(title= paste("TOP 10 RANKING ATP: ", '{closest_state}', sep = ""), x = "", y = "RANKING ATP MASCULINO") +
+  theme(plot.title = element_text(hjust = 0, size = 22),
+        axis.ticks.y = element_blank(),
+        axis.text.y  = element_blank(),
+        plot.margin = margin(1,1,1,4, "cm")) +
+  geom_text(aes(y = ranking_points, label = ranking_points, hjust=0)) + theme(plot.subtitle = element_text(vjust = 1),
+    plot.caption = element_text(vjust = 1),
+    panel.grid.minor = element_line(colour = "gray10"),
+    axis.title = element_text(face = "bold"),
+      plot.title = element_text(hjust = 0.5,
+        vjust = 1.5), panel.background = element_rect(fill = NA)) +
+    theme(plot.title = element_text(hjust = 0.4)) +
+    theme(axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(colour = "white"),
+    axis.title = element_text(colour = "white"),
+    axis.text = element_text(colour = "white"),
+    plot.title = element_text(colour = "white")) + labs(x = NULL) +
+    theme(axis.title = element_text(size = 18), 
+    axis.text = element_text(size = 16), 
+    plot.title = element_text(size = 30)) +
+    transition_states(date, transition_length = 4, state_length = 1) +
+  ease_aes('cubic-in-out')
+
+animate(p, fps = 10, duration = 10, width = 800, height = 600)
+
+```
+
+
+# FIN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,14 @@
+
+
+*** EN CASO DE EJECUTAR LOS SCRIPTS Y/0 KNITEAR EL RMD ***
+
+
+Descargar "rankings_1973-2017.csv" (demasiado pesado para subirlo al GitHub, incluso en zip),
+y no cambiar ubicación del archivo, ni nombre. 
+
+file_to_download <- "rankings_1973-2017.csv"
+url <- paste0("https://datahub.io/sports-data/atp-world-tour-tennis-data/r/7.html", file_to_download)
+download.file(url, destfile = file_to_download)
+
+Código disponible en script: "df_inicial" y directamente en el RMarkdown.
+
